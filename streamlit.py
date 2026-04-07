@@ -44,7 +44,7 @@ st.title("Nicks Midterm")
 space_df = pd.read_csv("data/space.csv")
 st.dataframe(space_df)
 
-st.image("images/global.png")
+# st.image("images/global.png")
 
 st.image("images/usa.png")
 
