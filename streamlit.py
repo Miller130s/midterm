@@ -44,11 +44,11 @@ st.title("Nicks Midterm")
 space_df = pd.read_csv("data/space.csv")
 st.dataframe(space_df)
 
-st.image("images/global_space.png")
+# st.image("images/global_space.png")
 
-st.image("images/usa.png")
+# st.image("images/usa.png")
 
-st.image("images/shift.png")
+# st.image("images/shift.png")
 
 pivot_focus = joblib.load("midterm.joblib")
 
