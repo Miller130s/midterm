@@ -5,7 +5,7 @@ from streamlit_echarts import st_echarts
 import numpy as np
 from scipy import stats
 import pydeck as pdk
-
+from PIL import Image
 
 # Split and Cross Val
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -43,12 +43,16 @@ st.title("Nicks Midterm")
 
 space_df = pd.read_csv("data/space.csv")
 st.dataframe(space_df)
+global_image = Image.open("images/global.png")
+usa_image = Image.open("images/usa.png")
+shift_image = Image.open("images/shift.png")
 
-# st.image("images/global.png")
 
-# st.image("images/usa.png")
+st.image(global_image)
 
-# st.image("images/shift.png")
+st.image(usa_image)
+
+st.image(shift_image)
 
 pivot_focus = joblib.load("midterm.joblib")
 

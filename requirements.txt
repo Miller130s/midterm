@@ -6,3 +6,4 @@ scipy
 pydeck
 joblib
 scikit-learn
+pillow
