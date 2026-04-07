@@ -46,9 +46,9 @@ st.dataframe(space_df)
 
 # st.image("images/global.png")
 
-st.image("images/usa.png")
+# st.image("images/usa.png")
 
-st.image("images/shift.png")
+# st.image("images/shift.png")
 
 pivot_focus = joblib.load("midterm.joblib")
 
