@@ -137,6 +137,7 @@ st_echarts(
 #Map
 
 
+
 st.title("Launch Density by Location")
 
 space_df = joblib.load("map_data.joblib")
