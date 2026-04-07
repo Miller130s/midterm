@@ -1,4 +1,3 @@
-metadata
 pandas
 streamlit
 streamlit_echarts
