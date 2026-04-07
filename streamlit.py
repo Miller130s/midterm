@@ -41,7 +41,7 @@ from sklearn.datasets import load_diabetes
 
 st.title("Nicks Midterm")
 
-space_df = pd.read_csv("data/Master_Space_Data_All.txt")
+space_df = pd.read_csv("data/space.csv")
 st.dataframe(space_df)
 
 st.image("Images/Global space activity.png")
