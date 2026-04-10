@@ -308,7 +308,7 @@ def clean_location(location):
 # --- 3. Robust Data Parsing ---
 @st.cache_data
 def load_and_map_data():
-    df = pd.read_csv("Master_Space_Data_All.csv")
+    df = pd.read_csv("data/Master_Space_Data_All.csv")
     
     # Robust year parsing for mixed formats (e.g., "Feb 25 2026" and "Wed May 28, 1958")
     def parse_year(date_str):
