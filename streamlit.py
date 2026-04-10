@@ -220,8 +220,6 @@ import streamlit as st
 import pandas as pd
 import pydeck as pdk
 import joblib
-
-
 st.title("Launch Density by Location")
 
 space_df = joblib.load("map_data.joblib")
@@ -249,29 +247,6 @@ if "playing" not in st.session_state:
     st.session_state.playing = False
 
 # -----------------------------
-# Controls
-# -----------------------------
-col1, col2, col3 = st.columns([1, 2, 1])
-
-with col1:
-    if st.button("▶ Play"):
-        st.session_state.playing = True
-
-with col2:
-    selected_year = st.slider(
-        "Year",
-        min_value=min_year,
-        max_value=max_year,
-        value=st.session_state.selected_year,
-        key="year_slider"
-    )
-    st.session_state.selected_year = selected_year
-
-with col3:
-    if st.button("⏸ Pause"):
-        st.session_state.playing = False
-
-# -----------------------------
 # Auto-play
 # -----------------------------
 if st.session_state.playing:
@@ -281,6 +256,27 @@ if st.session_state.playing:
         st.session_state.selected_year += 1
     else:
         st.session_state.selected_year = min_year
+
+# -----------------------------
+# Controls
+# -----------------------------
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:
+    if st.button("▶ Play"):
+        st.session_state.playing = True
+
+with col2:
+    st.slider(
+        "Year",
+        min_value=min_year,
+        max_value=max_year,
+        key="selected_year"
+    )
+
+with col3:
+    if st.button("⏸ Pause"):
+        st.session_state.playing = False
 
 current_year = st.session_state.selected_year
 st.subheader(f"Showing launches through {current_year}")
