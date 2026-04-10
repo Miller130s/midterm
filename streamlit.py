@@ -217,6 +217,12 @@ st.pydeck_chart(deck, height=700)
 # neeeeeeeeeeeeeeeewwww
 
 
+import streamlit as st
+import pandas as pd
+import pydeck as pdk
+import joblib
+from streamlit_autorefresh import st_autorefresh
+
 st.title("Launch Density by Location")
 
 space_df = joblib.load("map_data.joblib")
@@ -283,16 +289,6 @@ st.subheader(f"Showing launches through {current_year}")
 # -----------------------------
 df_year = space_df[space_df["year"] <= current_year].copy()
 
-# -----------------------------
-# Debug checks
-# -----------------------------
-st.write("Total cleaned rows:", len(space_df))
-st.write("Rows through selected year:", len(df_year))
-st.write("Min / Max year in cleaned data:", int(space_df["year"].min()), int(space_df["year"].max()))
-
-if not df_year.empty:
-    st.write(df_year[["year", "location", "lat", "lon"]].head())
-
 launch_counts = (
     df_year.groupby(["lat", "lon"])
     .agg(
@@ -302,10 +298,8 @@ launch_counts = (
     .reset_index()
 )
 
-st.write("Grouped map rows:", len(launch_counts))
-
 if launch_counts.empty:
-    st.warning("No mapped launch rows found after grouping lat/lon.")
+    st.warning("No map data available for this year yet.")
 else:
     launch_counts["coordinates"] = launch_counts.apply(
         lambda row: [row["lon"], row["lat"]], axis=1
@@ -350,7 +344,7 @@ else:
         tooltip={
             "html": "<b>Location:</b> {location}<br/><b>Launch Count:</b> {launch_count}"
         },
-        map_style="light"
+        map_style=None
     )
 
     st.pydeck_chart(deck, height=700)
