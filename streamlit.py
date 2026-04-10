@@ -226,7 +226,7 @@ import time
 st.set_page_config(layout="wide")
 st.title("🚀 Global Launch Density Timeline (1957 - 2025)")
 
-# --- 1. Coordinate Mapping ---
+# --- 1. Your Coordinate Mapping ---
 location_coords = {
     "Plesetsk Cosmodrome": [64.69703911171159, 40.23202122101674],
     "Cape Canaveral": [28.496279762592692, -80.57721035730918],
@@ -265,9 +265,10 @@ location_coords = {
     "S. Korea": [36.64325884421309, 127.20682071754388]
 }
 
-# --- 2. Cleaning Function ---
+# --- 2. Your Cleaning Function ---
 def clean_location(location):
     location = str(location).strip()
+    # (Existing cleaning logic...)
     if "Vandenberg" in location: return "Vandenberg"
     elif "Cape Canaveral" in location or "CCAFS" in location or "Cape Kennedy" in location: return "Cape Canaveral"
     elif "Kennedy Space Center" in location or "KSC" in location: return "Kennedy Space Center"
@@ -305,76 +306,90 @@ def clean_location(location):
     elif "Gran Canaria" in location: return "Gran Canaria"
     return None
 
-# --- 3. Robust Data Parsing ---
+# --- 3. Loading and Preparing Data ---
 @st.cache_data
 def load_and_map_data():
-    df = pd.read_csv("data/Master_Space_Data_All.csv")
-    
-    # Robust year parsing for mixed formats (e.g., "Feb 25 2026" and "Wed May 28, 1958")
-    def parse_year(date_str):
+    try:
+        # Use the correct filename (match your folder)
+        df = pd.read_csv("data/Master_Space_Data_All.csv")
+    except FileNotFoundError:
+        return pd.DataFrame() # Return empty if file missing
+
+    # Robust Date Parsing: Specifically handles "Wed May 28, 1958..." 
+    # and "Feb 25 2026..." formats.
+    def extract_year(date_str):
         try:
-            # Clean common artifacts
-            clean_date = str(date_str).replace("UTC", "").strip()
-            # This handles most standard and complex date strings
-            dt = pd.to_datetime(clean_date, fuzzy=True)
-            return dt.year
-        except Exception:
+            # We look for a 4-digit number starting with 19 or 20
+            import re
+            match = re.search(r'(19\d{2}|20\d{2})', str(date_str))
+            if match:
+                return int(match.group(1))
+            return None
+        except:
             return None
 
-    df['year'] = df['Datum'].apply(parse_year)
+    df['year'] = df['Datum'].apply(extract_year)
     
-    # Coordinate mapping
+    # Map Locations
     df["clean_loc"] = df["Location"].apply(clean_location)
     df["lat"] = df["clean_loc"].apply(lambda x: location_coords[x][0] if x in location_coords else None)
     df["lon"] = df["clean_loc"].apply(lambda x: location_coords[x][1] if x in location_coords else None)
     
-    # Return valid rows only
+    # Only keep rows with Year, Lat, and Lon
     return df.dropna(subset=['year', 'lat', 'lon']).copy()
 
 space_df = load_and_map_data()
 
-# --- 4. Animation logic ---
-if st.button('▶️ Start Timeline Animation'):
-    header_placeholder = st.empty()
-    map_placeholder = st.empty()
-
-    for year in range(int(space_df['year'].min()), 2026):
-        current_data = space_df[space_df['year'] <= year]
-        
-        launch_counts = (
-            current_data.groupby(["lat", "lon", "clean_loc"])
-            .size()
-            .reset_index(name="launch_count")
-        )
-        
-        launch_counts["coordinates"] = launch_counts.apply(lambda r: [r["lon"], r["lat"]], axis=1)
-        launch_counts["elevation"] = launch_counts["launch_count"] * 10000
-        
-        max_val = launch_counts["launch_count"].max()
-        def get_color(cnt):
-            ratio = cnt / max_val if max_val > 0 else 0
-            return [255, int(220 - 170 * ratio), int(120 - 120 * ratio), 180]
-        
-        launch_counts["color"] = launch_counts["launch_count"].apply(get_color)
-
-        layer = pdk.Layer(
-            "ColumnLayer",
-            data=launch_counts,
-            get_position="coordinates",
-            get_elevation="elevation",
-            get_fill_color="color",
-            radius=60000,
-            extruded=True,
-            pickable=True,
-        )
-
-        header_placeholder.subheader(f"Global Launch Density: {year}")
-        map_placeholder.pydeck_chart(pdk.Deck(
-            layers=[layer],
-            initial_view_state=pdk.ViewState(latitude=20, longitude=10, zoom=1.1, pitch=45),
-            tooltip={"html": "<b>Location:</b> {clean_loc}<br/><b>Total Launches:</b> {launch_count}"}
-        ))
-        
-        time.sleep(0.08)
+# --- 4. Main App & Animation ---
+if space_df.empty:
+    st.error("Data could not be loaded or no valid locations/years were found. Check your CSV file and location names.")
 else:
-    st.info(f"Loaded {len(space_df)} launch records from {int(space_df['year'].min())} to {int(space_df['year'].max())}. Click 'Start' to begin.")
+    min_year = int(space_df['year'].min())
+    max_year = int(space_df['year'].max())
+
+    if st.button('▶️ Start Timeline Animation'):
+        header_placeholder = st.empty()
+        map_placeholder = st.empty()
+
+        for year in range(min_year, max_year + 1):
+            current_data = space_df[space_df['year'] <= year]
+            
+            if current_data.empty:
+                continue
+
+            launch_counts = (
+                current_data.groupby(["lat", "lon", "clean_loc"])
+                .size()
+                .reset_index(name="launch_count")
+            )
+            
+            launch_counts["coordinates"] = launch_counts.apply(lambda r: [r["lon"], r["lat"]], axis=1)
+            launch_counts["elevation"] = launch_counts["launch_count"] * 10000
+            
+            max_val = launch_counts["launch_count"].max()
+            def get_color(cnt):
+                ratio = cnt / max_val if max_val > 0 else 0
+                return [255, int(220 - 170 * ratio), int(120 - 120 * ratio), 180]
+            
+            launch_counts["color"] = launch_counts["launch_count"].apply(get_color)
+
+            layer = pdk.Layer(
+                "ColumnLayer",
+                data=launch_counts,
+                get_position="coordinates",
+                get_elevation="elevation",
+                get_fill_color="color",
+                radius=60000,
+                extruded=True,
+                pickable=True,
+            )
+
+            header_placeholder.subheader(f"Global Launch Density: {year}")
+            map_placeholder.pydeck_chart(pdk.Deck(
+                layers=[layer],
+                initial_view_state=pdk.ViewState(latitude=20, longitude=10, zoom=1.1, pitch=45),
+                tooltip={"html": "<b>Location:</b> {clean_loc}<br/><b>Total Launches:</b> {launch_count}"}
+            ))
+            time.sleep(0.08)
+    else:
+        st.info(f"Loaded {len(space_df)} records from {min_year} to {max_year}. Click 'Start' to begin.")
