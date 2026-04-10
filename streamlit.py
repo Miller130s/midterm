@@ -239,7 +239,7 @@ space_df["year"] = space_df["year"].astype(int)
 # -----------------------------
 # Session state
 # -----------------------------
-min_year = int(space_df["year"].min())
+min_year = 1957
 max_year = int(space_df["year"].max())
 
 if "selected_year" not in st.session_state:
@@ -288,7 +288,7 @@ st.subheader(f"Showing launches through {current_year}")
 # -----------------------------
 # Filter through selected year
 # -----------------------------
-df_year = space_df[space_df["1957"] <= current_year].copy()
+df_year = space_df[space_df["year"] <= current_year].copy()
 
 launch_counts = (
     df_year.groupby(["lat", "lon"])
