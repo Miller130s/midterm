@@ -288,7 +288,7 @@ st.subheader(f"Showing launches through {current_year}")
 # -----------------------------
 # Filter through selected year
 # -----------------------------
-df_year = space_df[space_df["year"] <= current_year].copy()
+df_year = space_df[space_df["1957"] <= current_year].copy()
 
 launch_counts = (
     df_year.groupby(["lat", "lon"])
