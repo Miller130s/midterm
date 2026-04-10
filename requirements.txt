@@ -7,3 +7,4 @@ pydeck
 joblib
 scikit-learn
 pillow
+streamlit_autorefresh
