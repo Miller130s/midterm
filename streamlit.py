@@ -216,7 +216,6 @@ st.pydeck_chart(deck, height=700)
 
 # neeeeeeeeeeeeeeeewwww
 
-
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
@@ -227,11 +226,9 @@ st.title("Launch Density by Location")
 
 space_df = joblib.load("map_data.joblib")
 
-# Check raw data first
-st.write("Raw rows:", len(space_df))
-st.write(space_df[["year", "location", "lat", "lon"]].head(10))
-
+# -----------------------------
 # Clean data
+# -----------------------------
 space_df["lat"] = pd.to_numeric(space_df["lat"], errors="coerce")
 space_df["lon"] = pd.to_numeric(space_df["lon"], errors="coerce")
 space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
@@ -239,18 +236,41 @@ space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
 space_df = space_df.dropna(subset=["lat", "lon", "year"]).copy()
 space_df["year"] = space_df["year"].astype(int)
 
-st.write("Rows after cleaning:", len(space_df))
-st.write("Year range after cleaning:", space_df["year"].min(), "to", space_df["year"].max())
-
-min_year = 1957
+# -----------------------------
+# Year range
+# -----------------------------
+min_year = 1975
 max_year = int(space_df["year"].max())
 
+# -----------------------------
+# Session state
+# -----------------------------
 if "selected_year" not in st.session_state:
     st.session_state.selected_year = min_year
 
 if "playing" not in st.session_state:
     st.session_state.playing = False
 
+# keep selected year inside valid range
+if st.session_state.selected_year < min_year:
+    st.session_state.selected_year = min_year
+if st.session_state.selected_year > max_year:
+    st.session_state.selected_year = max_year
+
+# -----------------------------
+# Auto-play
+# -----------------------------
+if st.session_state.playing:
+    st_autorefresh(interval=1200, key="launch_animation")
+
+    if st.session_state.selected_year < max_year:
+        st.session_state.selected_year += 1
+    else:
+        st.session_state.selected_year = min_year
+
+# -----------------------------
+# Controls
+# -----------------------------
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -258,30 +278,25 @@ with col1:
         st.session_state.playing = True
 
 with col2:
-    st.session_state.selected_year = st.slider(
+    year_value = st.slider(
         "Year",
         min_value=min_year,
         max_value=max_year,
         value=st.session_state.selected_year
     )
+    st.session_state.selected_year = year_value
 
 with col3:
     if st.button("⏸ Pause"):
         st.session_state.playing = False
 
-if st.session_state.playing:
-    st_autorefresh(interval=1200, key="launch_animation")
-    if st.session_state.selected_year < max_year:
-        st.session_state.selected_year += 1
-    else:
-        st.session_state.selected_year = min_year
-
 current_year = st.session_state.selected_year
 st.subheader(f"Showing launches through {current_year}")
 
+# -----------------------------
+# Filter through selected year
+# -----------------------------
 df_year = space_df[space_df["year"] <= current_year].copy()
-
-st.write("Rows through selected year:", len(df_year))
 
 launch_counts = (
     df_year.groupby(["lat", "lon"])
@@ -292,10 +307,8 @@ launch_counts = (
     .reset_index()
 )
 
-st.write("Grouped rows:", len(launch_counts))
-
 if launch_counts.empty:
-    st.warning("No map data available for this year yet.")
+    st.warning(f"No launch data available through {current_year}.")
 else:
     launch_counts["coordinates"] = launch_counts.apply(
         lambda row: [row["lon"], row["lat"]], axis=1
