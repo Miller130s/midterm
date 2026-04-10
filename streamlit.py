@@ -347,16 +347,20 @@ else:
     min_year = int(space_df['year'].min())
     max_year = int(space_df['year'].max())
 
-    if st.button('▶️ Start Timeline Animation'):
-        header_placeholder = st.empty()
-        map_placeholder = st.empty()
+    # --- Updated Animation logic for Year-Only View ---
+if st.button('▶️ Start Year-by-Year Animation'):
+    header_placeholder = st.empty()
+    map_placeholder = st.empty()
 
-        for year in range(min_year, max_year + 1):
-            current_data = space_df[space_df['year'] <= year]
-            
-            if current_data.empty:
-                continue
-
+    for year in range(min_year, max_year + 1):
+        # CHANGE: Use == instead of <= to show only the current year's data
+        current_data = space_df[space_df['year'] == year]
+        
+        # If no launches happened this year, we can either show an empty map 
+        # or skip it. Let's show an empty map so the timeline stays smooth.
+        if current_data.empty:
+            launch_counts = pd.DataFrame(columns=["lat", "lon", "clean_loc", "launch_count", "coordinates", "color", "elevation"])
+        else:
             launch_counts = (
                 current_data.groupby(["lat", "lon", "clean_loc"])
                 .size()
@@ -364,32 +368,35 @@ else:
             )
             
             launch_counts["coordinates"] = launch_counts.apply(lambda r: [r["lon"], r["lat"]], axis=1)
-            launch_counts["elevation"] = launch_counts["launch_count"] * 10000
             
-            max_val = launch_counts["launch_count"].max()
-            def get_color(cnt):
-                ratio = cnt / max_val if max_val > 0 else 0
-                return [255, int(220 - 170 * ratio), int(120 - 120 * ratio), 180]
+            # Since you're only showing one year, counts will be smaller. 
+            # You might want to increase the elevation multiplier!
+            launch_counts["elevation"] = launch_counts["launch_count"] * 50000 
             
-            launch_counts["color"] = launch_counts["launch_count"].apply(get_color)
+            # Static Color (Since max_val changes every second, 
+            # static colors prevent the map from "flashing" colors)
+            launch_counts["color"] = [[255, 165, 0, 180]] * len(launch_counts) # Solid Orange
 
-            layer = pdk.Layer(
-                "ColumnLayer",
-                data=launch_counts,
-                get_position="coordinates",
-                get_elevation="elevation",
-                get_fill_color="color",
-                radius=60000,
-                extruded=True,
-                pickable=True,
-            )
+        layer = pdk.Layer(
+            "ColumnLayer",
+            data=launch_counts,
+            get_position="coordinates",
+            get_elevation="elevation",
+            get_fill_color="color",
+            radius=80000, # Made slightly larger for better visibility
+            extruded=True,
+            pickable=True,
+        )
 
-            header_placeholder.subheader(f"Global Launch Density: {year}")
-            map_placeholder.pydeck_chart(pdk.Deck(
-                layers=[layer],
-                initial_view_state=pdk.ViewState(latitude=20, longitude=10, zoom=1.1, pitch=45),
-                tooltip={"html": "<b>Location:</b> {clean_loc}<br/><b>Total Launches:</b> {launch_count}"}
-            ))
-            time.sleep(0.20)
+        header_placeholder.subheader(f"Global Launches in: {year}")
+        map_placeholder.pydeck_chart(pdk.Deck(
+            layers=[layer],
+            initial_view_state=pdk.ViewState(latitude=20, longitude=10, zoom=1.1, pitch=45),
+            tooltip={"html": "<b>Location:</b> {clean_loc}<br/><b>Launches this year:</b> {launch_count}"}
+        ))
+        
+        # You might want a slower speed for this mode (e.g., 0.3)
+        # so people can actually see the "blips" before they disappear.
+        time.sleep(0.1)
     else:
         st.info(f"Loaded {len(space_df)} records from {min_year} to {max_year}. Click 'Start' to begin.")
