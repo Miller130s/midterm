@@ -223,29 +223,64 @@ from streamlit_autorefresh import st_autorefresh
 
 st.title("Launch Density by Location")
 
+# -----------------------------
+# Load map data
+# -----------------------------
 space_df = joblib.load("map_data.joblib")
 
+# -----------------------------
+# Clean numeric columns
+# -----------------------------
 space_df["lat"] = pd.to_numeric(space_df["lat"], errors="coerce")
 space_df["lon"] = pd.to_numeric(space_df["lon"], errors="coerce")
+
+# -----------------------------
+# Rebuild year safely
+# This works even if datum formats vary
+# -----------------------------
+space_df["datum"] = space_df["datum"].astype(str).str.strip()
+space_df["year"] = space_df["datum"].str.extract(r"(\d{4})")
 space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
 
+# -----------------------------
+# Drop bad rows
+# -----------------------------
 space_df = space_df.dropna(subset=["lat", "lon", "year"]).copy()
 space_df["year"] = space_df["year"].astype(int)
 
+# -----------------------------
+# Optional debug check
+# -----------------------------
+st.write("Year range in map data:", int(space_df["year"].min()), "to", int(space_df["year"].max()))
+
+# -----------------------------
+# Start autoplay at 1975
+# -----------------------------
 min_year = 1975
 max_year = int(space_df["year"].max())
 
+# If your data starts after 1975, this prevents errors
+if min_year < int(space_df["year"].min()):
+    min_year = int(space_df["year"].min())
+
+# -----------------------------
+# Session state
+# -----------------------------
 if "selected_year" not in st.session_state:
     st.session_state.selected_year = min_year
 
 if "playing" not in st.session_state:
     st.session_state.playing = False
 
+# Keep year inside valid range
 if st.session_state.selected_year < min_year:
     st.session_state.selected_year = min_year
 if st.session_state.selected_year > max_year:
     st.session_state.selected_year = max_year
 
+# -----------------------------
+# Auto-play
+# -----------------------------
 if st.session_state.playing:
     st_autorefresh(interval=1200, key="launch_animation")
 
@@ -254,6 +289,9 @@ if st.session_state.playing:
     else:
         st.session_state.selected_year = min_year
 
+# -----------------------------
+# Controls
+# -----------------------------
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -261,13 +299,13 @@ with col1:
         st.session_state.playing = True
 
 with col2:
-    year_value = st.slider(
+    selected_year = st.slider(
         "Year",
         min_value=min_year,
         max_value=max_year,
         value=st.session_state.selected_year
     )
-    st.session_state.selected_year = year_value
+    st.session_state.selected_year = selected_year
 
 with col3:
     if st.button("⏸ Pause"):
@@ -276,13 +314,16 @@ with col3:
 current_year = st.session_state.selected_year
 st.subheader(f"Showing launches through {current_year}")
 
+# -----------------------------
+# Cumulative launches through current year
+# -----------------------------
 df_year = space_df[space_df["year"] <= current_year].copy()
 
 launch_counts = (
     df_year.groupby(["lat", "lon"])
     .agg(
         launch_count=("location", "size"),
-        location=("location_clean", "first")
+        location=("location", "first")
     )
     .reset_index()
 )

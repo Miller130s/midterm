@@ -91,18 +91,47 @@ location_coords = {
 # Clean location names
 # -----------------------------
 def clean_location(location):
-    location = str(location)
+    location = str(location).strip()
 
+    # USA
     if "Vandenberg" in location:
         return "Vandenberg"
-    elif "Cape Canaveral" in location:
+    elif "Cape Canaveral" in location or "CCAFS" in location or "Cape Kennedy" in location:
         return "Cape Canaveral"
-    elif "Kennedy Space Center" in location:
+    elif "Kennedy Space Center" in location or "KSC" in location:
         return "Kennedy Space Center"
     elif "Wallops" in location:
         return "Wallops"
-    elif "Mahia" in location:
-        return "Mahia"
+    elif "Kodiak" in location:
+        return "Kodiak Launch Complex"
+    elif "Starbase" in location:
+        return "Starbase"
+    elif "Corn Ranch" in location or "Van Horn" in location:
+        return "Corn Ranch"
+    elif "Point Mugu" in location:
+        return "Point Mugu"
+    elif "Edwards" in location:
+        return "Edwards AFB"
+    elif "Spaceport America" in location:
+        return "Spaceport America"
+    elif "Mojave" in location:
+        return "Mojave Air and Space Port"
+    elif "Kwajalein" in location:
+        return "Kwajalein Atoll"
+    elif "San Marco" in location:
+        return "San Marco Platform"
+
+    # Russia / USSR / Kazakhstan
+    elif "Plesetsk" in location:
+        return "Plesetsk Cosmodrome"
+    elif "Baikonur" in location or "Tyuratam" in location:
+        return "Baikonur Cosmodrome"
+    elif "Kapustin Yar" in location:
+        return "Kapustin Yar"
+    elif "Vostochny" in location:
+        return "Vostochny Cosmodrome"
+
+    # China
     elif "Jiuquan" in location:
         return "Jiuquan"
     elif "Xichang" in location:
@@ -113,73 +142,56 @@ def clean_location(location):
         return "Wenchang"
     elif "Yellow Sea" in location:
         return "Yellow Sea"
+
+    # Japan / India / NZ / Korea
     elif "Tanegashima" in location:
         return "Tanegashima"
-    elif "Sriharikota" in location or "Satish Dhawan" in location:
-        return "Sriharikota"
     elif "Uchinoura" in location:
         return "Uchinoura"
-    elif "Plesetsk" in location:
-        return "Plesetsk Cosmodrome"
-    elif "Baikonur" in location:
-        return "Baikonur Cosmodrome"
-    elif "Kapustin Yar" in location:
-        return "Kapustin Yar"
-    elif "Vostochny" in location:
-        return "Vostochny Cosmodrome"
-    elif "Semnan" in location:
-        return "Semnan"
-    elif "Palmachim" in location:
-        return "Palmachim"
-    elif "Kodiak" in location:
-        return "Kodiak Launch Complex"
-    elif "Starbase" in location:
-        return "Starbase"
-    elif "Corn Ranch" in location or "Van Horn" in location:
-        return "Corn Ranch"
-    elif "San Marco" in location:
-        return "San Marco Platform"
-    elif "Woomera" in location:
-        return "Woomera"
-    elif "Point Mugu" in location:
-        return "Point Mugu"
-    elif "Edwards" in location:
-        return "Edwards AFB"
+    elif "Sriharikota" in location or "Satish Dhawan" in location:
+        return "Sriharikota"
+    elif "Mahia" in location:
+        return "Mahia"
     elif "Naro" in location or "Goheung" in location:
         return "Naro Space Center"
-    elif "Spaceport America" in location:
-        return "Spaceport America"
+    elif "S. Korea" in location or "South Korea" in location:
+        return "S. Korea"
+
+    # Europe / Middle East / others
+    elif "French Guiana" in location or "Kourou" in location or "Guiana Space Centre" in location:
+        return "French Guiana"
+    elif "Palmachim" in location:
+        return "Palmachim"
+    elif "Semnan" in location:
+        return "Semnan"
+    elif "Woomera" in location:
+        return "Woomera"
     elif "Hammaguir" in location:
         return "Hammaguir"
-    elif "Mojave" in location:
-        return "Mojave Air and Space Port"
     elif "Sohae" in location:
         return "Sohae"
     elif "Gran Canaria" in location:
         return "Gran Canaria"
-    elif "French Guiana" in location or "Kourou" in location or "Guiana Space Centre" in location:
-        return "French Guiana"
-    elif "Kwajalein" in location:
-        return "Kwajalein Atoll"
-    elif "S. Korea" in location or "South Korea" in location:
-        return "S. Korea"
-    else:
-        return None
+
+    return None
+
+
+space_df = pd.read_csv("data/Master_Space_Data_All.txt")
+space_df.columns = space_df.columns.str.strip().str.lower()
+space_df["datum"] = pd.to_datetime(space_df["datum"], errors="coerce")
+space_df = space_df.dropna(subset=["datum"]).copy()
+space_df["year"] = space_df["datum"].dt.year.astype(int)
 
 space_df["location_clean"] = space_df["location"].apply(clean_location)
 space_df["coords"] = space_df["location_clean"].map(location_coords)
 
 space_df = space_df.dropna(subset=["coords"]).copy()
-
-# coords are [lat, lon]
 space_df["lat"] = space_df["coords"].apply(lambda x: x[0])
 space_df["lon"] = space_df["coords"].apply(lambda x: x[1])
 
-# keep only what the map needs
 map_data = space_df[["year", "location", "location_clean", "lat", "lon"]].copy()
 
-print("Year range in map_data:", map_data["year"].min(), "to", map_data["year"].max())
-print("Rows in map_data:", len(map_data))
+print("Saved map_data year range:", map_data["year"].min(), "to", map_data["year"].max())
+print("Saved map_data rows:", len(map_data))
 
 joblib.dump(map_data, "map_data.joblib")
-print("map_data.joblib saved successfully")
