@@ -178,10 +178,15 @@ def clean_location(location):
 
 space_df = pd.read_csv("data/Master_Space_Data_All.txt")
 space_df.columns = space_df.columns.str.strip().str.lower()
-space_df["datum"] = pd.to_datetime(space_df["datum"], errors="coerce")
-space_df = space_df.dropna(subset=["datum"]).copy()
-space_df["year"] = space_df["datum"].dt.year.astype(int)
 
+space_df["datum"] = space_df["datum"].astype(str).str.strip()
+space_df["year"] = space_df["datum"].str.extract(r"(\d{4})")
+space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
+
+space_df = space_df.dropna(subset=["year"]).copy()
+space_df["year"] = space_df["year"].astype(int)
+
+# your clean_location() and location_coords go here
 space_df["location_clean"] = space_df["location"].apply(clean_location)
 space_df["coords"] = space_df["location_clean"].map(location_coords)
 
@@ -189,9 +194,10 @@ space_df = space_df.dropna(subset=["coords"]).copy()
 space_df["lat"] = space_df["coords"].apply(lambda x: x[0])
 space_df["lon"] = space_df["coords"].apply(lambda x: x[1])
 
-map_data = space_df[["year", "location", "location_clean", "lat", "lon"]].copy()
+map_data = space_df[["year", "datum", "location", "location_clean", "lat", "lon"]].copy()
 
-print("Saved map_data year range:", map_data["year"].min(), "to", map_data["year"].max())
-print("Saved map_data rows:", len(map_data))
+print("map_data year range:", map_data["year"].min(), "to", map_data["year"].max())
+print("map_data rows:", len(map_data))
 
 joblib.dump(map_data, "map_data.joblib")
+print("saved")
