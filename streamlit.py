@@ -215,7 +215,6 @@ st.pydeck_chart(deck, height=700)
 
 
 # neeeeeeeeeeeeeeeewwww
-
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
@@ -226,9 +225,6 @@ st.title("Launch Density by Location")
 
 space_df = joblib.load("map_data.joblib")
 
-# -----------------------------
-# Clean data
-# -----------------------------
 space_df["lat"] = pd.to_numeric(space_df["lat"], errors="coerce")
 space_df["lon"] = pd.to_numeric(space_df["lon"], errors="coerce")
 space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
@@ -236,30 +232,20 @@ space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
 space_df = space_df.dropna(subset=["lat", "lon", "year"]).copy()
 space_df["year"] = space_df["year"].astype(int)
 
-# -----------------------------
-# Year range
-# -----------------------------
 min_year = 1975
 max_year = int(space_df["year"].max())
 
-# -----------------------------
-# Session state
-# -----------------------------
 if "selected_year" not in st.session_state:
     st.session_state.selected_year = min_year
 
 if "playing" not in st.session_state:
     st.session_state.playing = False
 
-# keep selected year inside valid range
 if st.session_state.selected_year < min_year:
     st.session_state.selected_year = min_year
 if st.session_state.selected_year > max_year:
     st.session_state.selected_year = max_year
 
-# -----------------------------
-# Auto-play
-# -----------------------------
 if st.session_state.playing:
     st_autorefresh(interval=1200, key="launch_animation")
 
@@ -268,9 +254,6 @@ if st.session_state.playing:
     else:
         st.session_state.selected_year = min_year
 
-# -----------------------------
-# Controls
-# -----------------------------
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -293,16 +276,13 @@ with col3:
 current_year = st.session_state.selected_year
 st.subheader(f"Showing launches through {current_year}")
 
-# -----------------------------
-# Filter through selected year
-# -----------------------------
 df_year = space_df[space_df["year"] <= current_year].copy()
 
 launch_counts = (
     df_year.groupby(["lat", "lon"])
     .agg(
         launch_count=("location", "size"),
-        location=("location", "first")
+        location=("location_clean", "first")
     )
     .reset_index()
 )
