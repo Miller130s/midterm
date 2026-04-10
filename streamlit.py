@@ -216,10 +216,7 @@ st.pydeck_chart(deck, height=700)
 
 # neeeeeeeeeeeeeeeewwww
 
-import streamlit as st
-import pandas as pd
-import pydeck as pdk
-import joblib
+
 st.title("Launch Density by Location")
 
 space_df = joblib.load("map_data.joblib")
@@ -247,6 +244,27 @@ if "playing" not in st.session_state:
     st.session_state.playing = False
 
 # -----------------------------
+# Controls
+# -----------------------------
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:
+    if st.button("▶ Play"):
+        st.session_state.playing = True
+
+with col2:
+    st.session_state.selected_year = st.slider(
+        "Year",
+        min_value=min_year,
+        max_value=max_year,
+        value=st.session_state.selected_year
+    )
+
+with col3:
+    if st.button("⏸ Pause"):
+        st.session_state.playing = False
+
+# -----------------------------
 # Auto-play
 # -----------------------------
 if st.session_state.playing:
@@ -257,27 +275,6 @@ if st.session_state.playing:
     else:
         st.session_state.selected_year = min_year
 
-# -----------------------------
-# Controls
-# -----------------------------
-col1, col2, col3 = st.columns([1, 2, 1])
-
-with col1:
-    if st.button("▶ Play"):
-        st.session_state.playing = True
-
-with col2:
-    st.slider(
-        "Year",
-        min_value=min_year,
-        max_value=max_year,
-        key="selected_year"
-    )
-
-with col3:
-    if st.button("⏸ Pause"):
-        st.session_state.playing = False
-
 current_year = st.session_state.selected_year
 st.subheader(f"Showing launches through {current_year}")
 
@@ -285,6 +282,16 @@ st.subheader(f"Showing launches through {current_year}")
 # Filter through selected year
 # -----------------------------
 df_year = space_df[space_df["year"] <= current_year].copy()
+
+# -----------------------------
+# Debug checks
+# -----------------------------
+st.write("Total cleaned rows:", len(space_df))
+st.write("Rows through selected year:", len(df_year))
+st.write("Min / Max year in cleaned data:", int(space_df["year"].min()), int(space_df["year"].max()))
+
+if not df_year.empty:
+    st.write(df_year[["year", "location", "lat", "lon"]].head())
 
 launch_counts = (
     df_year.groupby(["lat", "lon"])
@@ -295,53 +302,55 @@ launch_counts = (
     .reset_index()
 )
 
-launch_counts["coordinates"] = launch_counts.apply(
-    lambda row: [row["lon"], row["lat"]], axis=1
-)
+st.write("Grouped map rows:", len(launch_counts))
 
-launch_counts["elevation"] = launch_counts["launch_count"] * 10000
+if launch_counts.empty:
+    st.warning("No mapped launch rows found after grouping lat/lon.")
+else:
+    launch_counts["coordinates"] = launch_counts.apply(
+        lambda row: [row["lon"], row["lat"]], axis=1
+    )
 
-max_count = launch_counts["launch_count"].max() if not launch_counts.empty else 1
+    launch_counts["elevation"] = launch_counts["launch_count"] * 10000
 
-def get_bar_color(count):
-    ratio = count / max_count if max_count > 0 else 0
-    red = 255
-    green = int(220 - 170 * ratio)
-    blue = int(120 - 120 * ratio)
-    return [red, max(green, 0), max(blue, 0), 180]
+    max_count = launch_counts["launch_count"].max()
 
-launch_counts["color"] = launch_counts["launch_count"].apply(get_bar_color)
+    def get_bar_color(count):
+        ratio = count / max_count if max_count > 0 else 0
+        red = 255
+        green = int(220 - 170 * ratio)
+        blue = int(120 - 120 * ratio)
+        return [red, max(green, 0), max(blue, 0), 180]
 
-# -----------------------------
-# Pydeck layer
-# -----------------------------
-layer = pdk.Layer(
-    "ColumnLayer",
-    data=launch_counts,
-    get_position="coordinates",
-    get_elevation="elevation",
-    get_fill_color="color",
-    radius=50000,
-    pickable=True,
-    extruded=True,
-    auto_highlight=True,
-)
+    launch_counts["color"] = launch_counts["launch_count"].apply(get_bar_color)
 
-view_state = pdk.ViewState(
-    latitude=20,
-    longitude=10,
-    zoom=1.1,
-    pitch=50,
-    bearing=0
-)
+    layer = pdk.Layer(
+        "ColumnLayer",
+        data=launch_counts,
+        get_position="coordinates",
+        get_elevation="elevation",
+        get_fill_color="color",
+        radius=50000,
+        pickable=True,
+        extruded=True,
+        auto_highlight=True,
+    )
 
-deck = pdk.Deck(
-    layers=[layer],
-    initial_view_state=view_state,
-    tooltip={
-        "html": "<b>Location:</b> {location}<br/><b>Launch Count:</b> {launch_count}"
-    },
-    map_style=None
-)
+    view_state = pdk.ViewState(
+        latitude=20,
+        longitude=10,
+        zoom=1.1,
+        pitch=50,
+        bearing=0
+    )
 
-st.pydeck_chart(deck, height=700)
+    deck = pdk.Deck(
+        layers=[layer],
+        initial_view_state=view_state,
+        tooltip={
+            "html": "<b>Location:</b> {location}<br/><b>Launch Count:</b> {launch_count}"
+        },
+        map_style="light"
+    )
+
+    st.pydeck_chart(deck, height=700)
