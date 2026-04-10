@@ -309,7 +309,7 @@ def clean_location(location):
 @st.cache_data
 def load_and_map_data():
     # Load raw CSV
-    df = pd.read_csv("Master_Space_Data_All.csv")
+    df = pd.read_csv("data/Master_Space_Data_All.csv")
     
     # 1. Clean the Location names into keys for our coord dictionary
     df["clean_loc"] = df["Location"].apply(clean_location)
