@@ -390,6 +390,6 @@ else:
                 initial_view_state=pdk.ViewState(latitude=20, longitude=10, zoom=1.1, pitch=45),
                 tooltip={"html": "<b>Location:</b> {clean_loc}<br/><b>Total Launches:</b> {launch_count}"}
             ))
-            time.sleep(0.08)
+            time.sleep(0.20)
     else:
         st.info(f"Loaded {len(space_df)} records from {min_year} to {max_year}. Click 'Start' to begin.")
