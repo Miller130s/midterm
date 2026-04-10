@@ -227,9 +227,11 @@ st.title("Launch Density by Location")
 
 space_df = joblib.load("map_data.joblib")
 
-# -----------------------------
+# Check raw data first
+st.write("Raw rows:", len(space_df))
+st.write(space_df[["year", "location", "lat", "lon"]].head(10))
+
 # Clean data
-# -----------------------------
 space_df["lat"] = pd.to_numeric(space_df["lat"], errors="coerce")
 space_df["lon"] = pd.to_numeric(space_df["lon"], errors="coerce")
 space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
@@ -237,9 +239,9 @@ space_df["year"] = pd.to_numeric(space_df["year"], errors="coerce")
 space_df = space_df.dropna(subset=["lat", "lon", "year"]).copy()
 space_df["year"] = space_df["year"].astype(int)
 
-# -----------------------------
-# Session state
-# -----------------------------
+st.write("Rows after cleaning:", len(space_df))
+st.write("Year range after cleaning:", space_df["year"].min(), "to", space_df["year"].max())
+
 min_year = 1957
 max_year = int(space_df["year"].max())
 
@@ -249,9 +251,6 @@ if "selected_year" not in st.session_state:
 if "playing" not in st.session_state:
     st.session_state.playing = False
 
-# -----------------------------
-# Controls
-# -----------------------------
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
@@ -270,12 +269,8 @@ with col3:
     if st.button("⏸ Pause"):
         st.session_state.playing = False
 
-# -----------------------------
-# Auto-play
-# -----------------------------
 if st.session_state.playing:
     st_autorefresh(interval=1200, key="launch_animation")
-
     if st.session_state.selected_year < max_year:
         st.session_state.selected_year += 1
     else:
@@ -284,10 +279,9 @@ if st.session_state.playing:
 current_year = st.session_state.selected_year
 st.subheader(f"Showing launches through {current_year}")
 
-# -----------------------------
-# Filter through selected year
-# -----------------------------
 df_year = space_df[space_df["year"] <= current_year].copy()
+
+st.write("Rows through selected year:", len(df_year))
 
 launch_counts = (
     df_year.groupby(["lat", "lon"])
@@ -297,6 +291,8 @@ launch_counts = (
     )
     .reset_index()
 )
+
+st.write("Grouped rows:", len(launch_counts))
 
 if launch_counts.empty:
     st.warning("No map data available for this year yet.")
