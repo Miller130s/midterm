@@ -397,6 +397,6 @@ if st.button('▶️ Start Year-by-Year Animation'):
         
         # You might want a slower speed for this mode (e.g., 0.3)
         # so people can actually see the "blips" before they disappear.
-        time.sleep(0.5)
+        time.sleep(0.4)
     else:
         st.info(f"Loaded {len(space_df)} records from {min_year} to {max_year}. Click 'Start' to begin.")
