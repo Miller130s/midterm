@@ -226,7 +226,7 @@ import time
 st.set_page_config(layout="wide")
 st.title("🚀 Global Launch Density Timeline (1957 - 2025)")
 
-# --- 1. Your Provided Coordinate Mapping ---
+# --- 1. Coordinate Mapping ---
 location_coords = {
     "Plesetsk Cosmodrome": [64.69703911171159, 40.23202122101674],
     "Cape Canaveral": [28.496279762592692, -80.57721035730918],
@@ -265,7 +265,7 @@ location_coords = {
     "S. Korea": [36.64325884421309, 127.20682071754388]
 }
 
-# --- 2. Your Provided Cleaning Function ---
+# --- 2. Cleaning Function ---
 def clean_location(location):
     location = str(location).strip()
     if "Vandenberg" in location: return "Vandenberg"
@@ -305,23 +305,30 @@ def clean_location(location):
     elif "Gran Canaria" in location: return "Gran Canaria"
     return None
 
-# --- 3. Loading and Preparing Data ---
+# --- 3. Robust Data Parsing ---
 @st.cache_data
 def load_and_map_data():
-    # Load raw CSV
-    df = pd.read_csv("data/Master_Space_Data_All.csv")
+    df = pd.read_csv("Master_Space_Data_All.csv")
     
-    # 1. Clean the Location names into keys for our coord dictionary
+    # Robust year parsing for mixed formats (e.g., "Feb 25 2026" and "Wed May 28, 1958")
+    def parse_year(date_str):
+        try:
+            # Clean common artifacts
+            clean_date = str(date_str).replace("UTC", "").strip()
+            # This handles most standard and complex date strings
+            dt = pd.to_datetime(clean_date, fuzzy=True)
+            return dt.year
+        except Exception:
+            return None
+
+    df['year'] = df['Datum'].apply(parse_year)
+    
+    # Coordinate mapping
     df["clean_loc"] = df["Location"].apply(clean_location)
-    
-    # 2. Map coordinates (Lat/Lon) to the dataframe
     df["lat"] = df["clean_loc"].apply(lambda x: location_coords[x][0] if x in location_coords else None)
     df["lon"] = df["clean_loc"].apply(lambda x: location_coords[x][1] if x in location_coords else None)
     
-    # 3. Handle Dates
-    df['year'] = pd.to_datetime(df['Datum'], errors='coerce').dt.year
-    
-    # Drop rows without required info
+    # Return valid rows only
     return df.dropna(subset=['year', 'lat', 'lon']).copy()
 
 space_df = load_and_map_data()
@@ -331,11 +338,9 @@ if st.button('▶️ Start Timeline Animation'):
     header_placeholder = st.empty()
     map_placeholder = st.empty()
 
-    for year in range(1957, 2026):
-        # Filter for data up to this year
+    for year in range(int(space_df['year'].min()), 2026):
         current_data = space_df[space_df['year'] <= year]
         
-        # Aggregate launch counts by coordinate
         launch_counts = (
             current_data.groupby(["lat", "lon", "clean_loc"])
             .size()
@@ -345,7 +350,6 @@ if st.button('▶️ Start Timeline Animation'):
         launch_counts["coordinates"] = launch_counts.apply(lambda r: [r["lon"], r["lat"]], axis=1)
         launch_counts["elevation"] = launch_counts["launch_count"] * 10000
         
-        # Color calculation
         max_val = launch_counts["launch_count"].max()
         def get_color(cnt):
             ratio = cnt / max_val if max_val > 0 else 0
@@ -353,7 +357,6 @@ if st.button('▶️ Start Timeline Animation'):
         
         launch_counts["color"] = launch_counts["launch_count"].apply(get_color)
 
-        # PyDeck Layer
         layer = pdk.Layer(
             "ColumnLayer",
             data=launch_counts,
@@ -365,7 +368,6 @@ if st.button('▶️ Start Timeline Animation'):
             pickable=True,
         )
 
-        # Update Display
         header_placeholder.subheader(f"Global Launch Density: {year}")
         map_placeholder.pydeck_chart(pdk.Deck(
             layers=[layer],
@@ -373,6 +375,6 @@ if st.button('▶️ Start Timeline Animation'):
             tooltip={"html": "<b>Location:</b> {clean_loc}<br/><b>Total Launches:</b> {launch_count}"}
         ))
         
-        time.sleep(0.08) # Animation speed
+        time.sleep(0.08)
 else:
-    st.info("Ready to play. Click the button above to start the 1957-2025 timeline.")
+    st.info(f"Loaded {len(space_df)} launch records from {int(space_df['year'].min())} to {int(space_df['year'].max())}. Click 'Start' to begin.")
