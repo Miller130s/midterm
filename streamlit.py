@@ -345,7 +345,7 @@ if space_df.empty:
     st.error("Data could not be loaded or no valid locations/years were found. Check your CSV file and location names.")
 else:
     min_year = int(space_df['year'].min())
-    max_year = int(space_df['year'].max())
+    max_year = 2025
 
     # --- Updated Animation logic for Year-Only View ---
 if st.button('▶️ Start Year-by-Year Animation'):
@@ -397,6 +397,6 @@ if st.button('▶️ Start Year-by-Year Animation'):
         
         # You might want a slower speed for this mode (e.g., 0.3)
         # so people can actually see the "blips" before they disappear.
-        time.sleep(0.4)
+        time.sleep(0.5)
     else:
         st.info(f"Loaded {len(space_df)} records from {min_year} to {max_year}. Click 'Start' to begin.")
